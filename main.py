@@ -36,14 +36,13 @@ def start(update: Update, context: CallbackContext) -> None:
 
 def request(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
-    if not started_users_collection.find_one({"_id": user_id}):
-        update.message.reply_text(text="Please start the bot first.",
-                          reply_markup=InlineKeyboardMarkup([
-                              [InlineKeyboardButton("Start Bot", url=f"t.me/{BOT_NAME}")]
-                          ]))
-
-    elif update.effective_chat.id != -1001538551149:
+    if update.effective_chat.id != -1001538551149:
         update.message.reply_text(text="The #request command can only be used in a specific group.")
+    elif not started_users_collection.find_one({"_id": user_id}):
+        update.message.reply_text(text="Please start the bot first.",
+                                  reply_markup=InlineKeyboardMarkup([
+                                      [InlineKeyboardButton("Start Bot", url=f"t.me/{BOT_NAME}")]
+                                  ]))
     else:
         anime_name = update.message.text.split("#request ")[-1]
         requests[user_id] = {"name": anime_name, "message_id": update.message.message_id}
@@ -56,6 +55,7 @@ def request(update: Update, context: CallbackContext) -> None:
                                                    [InlineKeyboardButton("Request Message", url=f"{GRP_LINK}/{update.message.message_id}")]
                                                ]))
         update.message.reply_text(text="Okay, Your request has been sent to the admins to review. Please wait some days for it to be uploaded.")
+
 
 
 # Function to handle button presses
