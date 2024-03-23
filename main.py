@@ -1,8 +1,8 @@
-import logging
-import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, CallbackQueryHandler
 from pymongo import MongoClient
+import logging
+import os
 
 # Set up logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -25,8 +25,6 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN")
 # Set to store users who have started the bot
 started_users = set()
 
-
-
 # Function to handle /start command
 def start(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
@@ -44,6 +42,8 @@ def request(update: Update, context: CallbackContext) -> None:
                               [InlineKeyboardButton("Start Bot", url=f"t.me/{BOT_NAME}")]
                           ]))
 
+    elif update.effective_chat.id != -1001538551149:
+        update.message.reply_text(text="The #request command can only be used in a specific group.")
     else:
         anime_name = update.message.text.split("#request ")[-1]
         requests[user_id] = {"name": anime_name, "message_id": update.message.message_id}
@@ -106,8 +106,4 @@ def main():
 
     updater.start_polling()
 
-    updater.idle()
-
-
-if __name__ == '__main__':
-    main()
+    updater.id
