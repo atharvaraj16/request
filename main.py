@@ -1,8 +1,9 @@
+import logging
+import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, CallbackQueryHandler
 from pymongo import MongoClient
-import logging
-import os
+
 
 # Set up logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -25,6 +26,11 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN")
 # Set to store users who have started the bot
 started_users = set()
 
+# Set to store users who have started the bot
+started_users = set()
+
+
+
 # Function to handle /start command
 def start(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
@@ -36,18 +42,22 @@ def start(update: Update, context: CallbackContext) -> None:
 
 def request(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
-    if update.effective_chat.id != -1001538551149:
-        update.message.reply_text(text="The #request command can only be used in a specific group.")
-    elif not started_users_collection.find_one({"_id": user_id}):
+    if update.message.chat.type == 'private':
+        update.message.reply_text("This command can only be used in group chats.")
+        return
+
+    if not started_users_collection.find_one({"_id": user_id}):
         update.message.reply_text(text="Please start the bot first.",
-                                  reply_markup=InlineKeyboardMarkup([
-                                      [InlineKeyboardButton("Start Bot", url=f"t.me/{BOT_NAME}")]
-                                  ]))
+                          reply_markup=InlineKeyboardMarkup([
+                              [InlineKeyboardButton("Start Bot", url=f"t.me/{BOT_NAME}")]
+                          ]))
     else:
         anime_name = update.message.text.split("#request ")[-1]
         requests[user_id] = {"name": anime_name, "message_id": update.message.message_id}
+        user = update.message.from_user
+        user_tag = f"@{user.username}" if user.username else user.first_name
         log_message = context.bot.send_message(chat_id=LOG,
-                                               text=f"New request: {anime_name}",
+                                               text=f"New request from {user_tag}: {anime_name}",
                                                reply_markup=InlineKeyboardMarkup([
                                                    [InlineKeyboardButton("Approve", callback_data=f"approve_{user_id}"),
                                                     InlineKeyboardButton("Decline", callback_data=f"decline_{user_id}"),
@@ -64,27 +74,30 @@ def button(update: Update, context: CallbackContext) -> None:
     user_id = query.data.split("_")[-1]
     log_channel_id = LOG  # Log channel ID
 
-    if query.data.startswith("approve"):
+    # Check if the user is an admin
+    user = context.bot.get_chat_member(update.effective_chat.id, user_id)
+    if user.status == 'administrator':
+        if query.data.startswith("approve"):
             anime_name = requests.get(user_id, {}).get("name", "Unknown")
             old_message_text = query.message.text
             new_text = f"*Approved The*:\n{old_message_text}"
             context.bot.edit_message_text(chat_id=log_channel_id, message_id=query.message.message_id,
                                           text=new_text, parse_mode='Markdown')
-            context.bot.send_message(chat_id=user_id, text="Your Request has been Approved.")
-    elif query.data.startswith("decline"):
+            context.bot.send_message(chat_id=user_id, text="Your anime has been Approved.")
+        elif query.data.startswith("decline"):
             anime_name = requests.get(user_id, {}).get("name", "Unknown")
             old_message_text = query.message.text
             new_text = f"*Declined The*:\n{old_message_text}:"
             context.bot.edit_message_text(chat_id=log_channel_id, message_id=query.message.message_id,
                                           text=new_text, parse_mode='Markdown')
-            context.bot.send_message(chat_id=user_id, text="Unfortunately, your Request has been declined.")
-    elif query.data.startswith("unavailable"):
+            context.bot.send_message(chat_id=user_id, text="Unfortunately, your anime has been declined.")
+        elif query.data.startswith("unavailable"):
             anime_name = requests.get(user_id, {}).get("name", "Unknown")
             old_message_text = query.message.text
             new_text = f"*Unavailable The*:\n{old_message_text}"
             context.bot.edit_message_text(chat_id=log_channel_id, message_id=query.message.message_id,
                                           text=new_text, parse_mode='Markdown')
-            context.bot.send_message(chat_id=user_id, text="The requested Request is unavailable.")
+            context.bot.send_message(chat_id=user_id, text="The requested anime is unavailable.")
 
 
 # Function to handle errors
