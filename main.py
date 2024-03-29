@@ -119,4 +119,7 @@ def main():
 
     updater.start_polling()
 
-    updater.id
+    updater.idle()
+
+if __name__ == '__main__':
+    main()
